@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Start</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     DESIGN TOKENS
+     Matte purple/black: flat fills, soft diffuse shadows (no glossy
+     highlights), a muted violet accent rather than a neon one.
+     ============================================================ */
+  :root{
+    --bg: #0b0a10;             /* near-black, faint purple tint */
+    --bg-2: #100d17;
+    --surface: #16121e;        /* cards / bar */
+    --surface-2: #1d1829;      /* hover / raised */
+    --border: rgba(226, 216, 245, 0.08);
+    --border-strong: rgba(226, 216, 245, 0.16);
+    --purple: #8a6cf0;         /* primary accent — muted violet, not neon */
+    --purple-dim: #5c4a94;
+    --purple-glow: rgba(138, 108, 240, 0.25);
+    --text: #ece7f7;
+    --text-dim: #a79dc2;
+    --text-faint: #6f6688;
+    --danger: #d97b7b;
+
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    --radius: 14px;
+    --radius-sm: 9px;
+    --ease: cubic-bezier(.22,.8,.32,1);
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow-x:hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; }
+
+  /* ============================================================
+     SIGNATURE ELEMENT: matte aurora + grain
+     Two large, very slow blurred blobs drift behind the page, and a
+     tiled SVG-noise overlay flattens their glow into a matte texture
+     instead of a glossy gradient. This is the one "loud" element —
+     everything else stays quiet and flat by design.
+     ============================================================ */
+  .aurora{
+    position: fixed; inset: -20%;
+    z-index: 0;
+    pointer-events: none;
+    filter: blur(90px);
+    opacity: .55;
+  }
+  .aurora span{
+    position:absolute;
+    width: 42vw; height: 42vw;
+    border-radius: 50%;
+  }
+  .aurora span:nth-child(1){
+    top: -10%; left: -8%;
+    background: radial-gradient(circle at 30% 30%, var(--purple-dim), transparent 70%);
+    animation: drift1 34s ease-in-out infinite;
+  }
+  .aurora span:nth-child(2){
+    bottom: -15%; right: -10%;
+    width: 36vw; height: 36vw;
+    background: radial-gradient(circle at 60% 60%, #3a2a63, transparent 70%);
+    animation: drift2 40s ease-in-out infinite;
+  }
+  @keyframes drift1{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(6vw, 4vh) scale(1.08); }
+  }
+  @keyframes drift2{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(-5vw, -5vh) scale(1.05); }
+  }
+  .grain{
+    position: fixed; inset:0; z-index:1;
+    pointer-events:none;
+    opacity: .05;
+    mix-blend-mode: overlay;
+  }
+
+  /* ============================================================
+     LAYOUT
+     ============================================================ */
+  .app{ position:relative; z-index:2; min-height:100%; display:flex; flex-direction:column; }
+
+  /* ---- bookmarks bar (top) ------------------------------------ */
+  .bookmarks-bar{
+    display:flex; align-items:center; gap:4px;
+    padding: 8px 14px;
+    background: rgba(22,18,30,.55);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    min-height: 40px;
+    opacity:0; animation: rise .5s var(--ease) forwards;
+  }
+  .bm-item{
+    position:relative;
+    display:flex; align-items:center; gap:6px;
+    padding: 5px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    cursor:pointer;
+    white-space:nowrap;
+    transition: background .15s var(--ease), color .15s var(--ease);
+  }
+  .bm-item:hover{ background: var(--surface-2); color: var(--text); }
+  .bm-item img{ width:14px; height:14px; border-radius:3px; flex:none; }
+  .bm-item .folder-dot{
+    width:14px; height:14px; border-radius:3px; flex:none;
+    background: var(--purple-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px;
+  }
+  .bm-item .close{
+    opacity:0; margin-left:2px; color: var(--text-faint);
+    font-size:13px; line-height:1;
+  }
+  .bm-item:hover .close{ opacity:1; }
+  .bm-item .close:hover{ color: var(--danger); }
+
+  .bm-add{
+    display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:50%;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    cursor:pointer;
+    transition: all .15s var(--ease);
+    flex:none;
+  }
+  .bm-add:hover{ color:var(--text); border-color: var(--purple); background: var(--surface-2); }
+
+  .bm-empty{ font-size:12px; color: var(--text-faint); padding: 5px 4px; }
+
+  /* folder dropdown */
+  .bm-dropdown{
+    position:absolute; top: calc(100% + 6px); left:0;
+    min-width: 190px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    padding: 6px;
+    z-index: 20;
+    transform-origin: top left;
+    animation: dropIn .16s var(--ease);
+  }
+  @keyframes dropIn{ from{ opacity:0; transform: scaleY(.85) translateY(-4px);} to{opacity:1; transform:scaleY(1) translateY(0);} }
+  .bm-dropdown .bm-item{ width:100%; }
+  .bm-dropdown-add{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 9px; font-size:12px; color: var(--text-faint);
+    border-radius: var(--radius-sm); cursor:pointer;
+    border-top: 1px solid var(--border); margin-top:4px; padding-top:8px;
+  }
+  .bm-dropdown-add:hover{ color: var(--purple); }
+
+  /* ---- main / hero ---------------------------------------------- */
+  main{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 6vh 20px 8vh;
+    gap: 34px;
+  }
+
+  .brand{
+    font-family: var(--font-body); font-weight:600; font-size:12px;
+    letter-spacing: .12em; text-transform:uppercase;
+    color: var(--text-faint);
+    padding: 4px 10px; border-radius: 20px;
+    cursor:text; outline:none;
+    opacity:0; animation: rise .6s var(--ease) .05s forwards;
+  }
+  .brand:hover{ color: var(--text-dim); background: var(--surface); }
+  .brand:focus{ color: var(--purple); background: var(--surface); }
+
+  .greeting-wrap{
+    text-align:center;
+    opacity:0; animation: rise .7s var(--ease) .12s forwards;
+  }
+  .greeting{
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(28px, 4.4vw, 46px);
+    letter-spacing: -.01em;
+    color: var(--text);
+  }
+  .greeting em{ font-style: italic; color: var(--purple); font-weight:400; }
+  .clock{
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .04em;
+  }
+
+  .search-form{
+    width: min(560px, 90vw);
+    opacity:0; animation: rise .7s var(--ease) .2s forwards;
+  }
+  .search-bar{
+    display:flex; align-items:center; gap:10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 13px 18px;
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease);
+  }
+  .search-bar:focus-within{
+    border-color: var(--purple-dim);
+    box-shadow: 0 0 0 4px var(--purple-glow);
+    background: var(--surface-2);
+  }
+  .search-bar svg{ flex:none; opacity:.55; }
+  .search-bar input{
+    flex:1; background:none; border:none; outline:none;
+    color: var(--text); font-family: var(--font-body); font-size:14.5px;
+  }
+  .search-bar input::placeholder{ color: var(--text-faint); }
+
+  /* ---- shortcuts --------------------------------------------- */
+  .shortcuts{
+    display:flex; flex-wrap:wrap; justify-content:center; gap: 18px;
+    width: min(640px, 92vw);
+    opacity:0; animation: rise .7s var(--ease) .3s forwards;
+  }
+  .shortcut{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    width: 76px;
+    cursor:pointer;
+  }
+  .tile{
+    width:56px; height:56px; border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display); font-size:20px; color: var(--purple);
+    transition: transform .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  .shortcut:hover .tile{
+    transform: translateY(-3px);
+    border-color: var(--purple-dim);
+    background: var(--surface-2);
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  }
+  .tile img{ width:26px; height:26px; border-radius:6px; }
+  .shortcut span{
+    font-size:11.5px; color: var(--text-dim);
+    max-width: 76px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .shortcut .remove{
+    position:absolute; top:-6px; right:8px;
+    width:18px; height:18px; border-radius:50%;
+    background: var(--surface-2); border:1px solid var(--border-strong);
+    color: var(--text-faint); font-size:12px; line-height:16px; text-align:center;
+    opacity:0; transition: opacity .15s var(--ease), color .15s var(--ease);
+  }
+  .shortcut:hover .remove{ opacity:1; }
+  .shortcut .remove:hover{ color: var(--danger); border-color: var(--danger); }
+
+  .shortcut.add .tile{
+    border-style: dashed; color: var(--text-faint); background:transparent;
+  }
+  .shortcut.add:hover .tile{ color: var(--purple); }
+
+  /* ============================================================
+     MODAL
+     ============================================================ */
+  .overlay{
+    position:fixed; inset:0; z-index:50;
+    background: rgba(6,5,10,.6);
+    backdrop-filter: blur(3px);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition: opacity .18s var(--ease);
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .modal{
+    width: min(360px, 88vw);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 22px;
+    transform: scale(.94) translateY(6px);
+    transition: transform .2s var(--ease);
+    box-shadow: 0 30px 70px rgba(0,0,0,.5);
+  }
+  .overlay.open .modal{ transform: scale(1) translateY(0); }
+  .modal h3{
+    margin:0 0 16px; font-family: var(--font-display); font-weight:500; font-size:19px;
+  }
+  .field{ margin-bottom: 12px; }
+  .field label{ display:block; font-size:11.5px; color: var(--text-faint); margin-bottom:5px; letter-spacing:.03em; text-transform:uppercase; }
+  .field input, .field select{
+    width:100%; padding: 10px 12px; border-radius: var(--radius-sm);
+    background: var(--bg-2); border:1px solid var(--border);
+    color: var(--text); font-family: var(--font-body); font-size:13.5px; outline:none;
+    transition: border-color .15s var(--ease);
+  }
+  .field input:focus, .field select:focus{ border-color: var(--purple-dim); }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top: 18px; }
+  .btn{
+    padding: 9px 16px; border-radius: 999px; border:1px solid var(--border-strong);
+    background: transparent; color: var(--text-dim); font-size:13px; cursor:pointer;
+    transition: all .15s var(--ease);
+  }
+  .btn:hover{ background: var(--surface-2); color: var(--text); }
+  .btn.primary{
+    background: var(--purple-dim); border-color: var(--purple-dim); color: #fff;
+  }
+  .btn.primary:hover{ background: var(--purple); border-color: var(--purple); }
+
+  @keyframes rise{ from{ opacity:0; transform: translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+
+  @media (prefers-reduced-motion: reduce){
+    .aurora span{ animation:none; }
+    .bookmarks-bar, .brand, .greeting-wrap, .search-form, .shortcuts{ animation:none; opacity:1; }
+  }
+
+  @media (max-width: 480px){
+    .shortcuts{ gap:12px; }
+    .shortcut{ width:64px; }
+    .tile{ width:50px; height:50px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- signature background: drifting matte aurora + grain -->
+  <div class="aurora"><span></span><span></span></div>
+  <svg class="grain" width="100%" height="100%">
+    <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter>
+    <rect width="100%" height="100%" filter="url(#n)"/>
+  </svg>
+
+  <div class="app">
+
+    <!-- ============ BOOKMARKS BAR ============ -->
+    <div class="bookmarks-bar" id="bookmarksBar"></div>
+
+    <!-- ============ MAIN ============ -->
+    <main>
+      <div class="brand" id="siteName" contenteditable="true" spellcheck="false"></div>
+
+      <div class="greeting-wrap">
+        <div class="greeting" id="greeting"></div>
+        <div class="clock" id="clock"></div>
+      </div>
+
+      <form class="search-form" id="searchForm">
+        <div class="search-bar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="searchInput" type="text" placeholder="Search Google or type a URL" autocomplete="off">
+        </div>
+      </form>
+
+      <div class="shortcuts" id="shortcuts"></div>
+    </main>
+  </div>
+
+  <!-- ============ MODAL (reused for every "add" action) ============ -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h3 id="modalTitle">Add</h3>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn" id="modalCancel" type="button">Cancel</button>
+        <button class="btn primary" id="modalSave" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =====================================================================
+   DATA LAYER
+   Everything lives in one localStorage key. This only persists if the
+   file is opened from the same location each time (see the note I give
+   you in chat about how Chrome actually loads this page) — it is NOT
+   synced anywhere, it's just this browser's local storage.
+   ===================================================================== */
+const STORE_KEY = 'startpage_v1';
+
+const DEFAULT_DATA = {
+  siteName: 'My Space',
+  userName: '',
+  shortcuts: [
+    { id: id(), title: 'YouTube', url: 'https://youtube.com' },
+    { id: id(), title: 'Gmail',   url: 'https://mail.google.com' },
+  ],
+  // bookmarks: flat array; folders have type:'folder' and their own children array
+  bookmarks: [
+    { id: id(), type: 'link', title: 'Anthropic', url: 'https://anthropic.com' },
+  ]
+};
+
+function id(){ return Math.random().toString(36).slice(2, 10); }
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return structuredClone(DEFAULT_DATA);
+    return JSON.parse(raw);
+  }catch(e){
+    console.error('Could not read saved data, starting fresh.', e);
+    return structuredClone(DEFAULT_DATA);
+  }
+}
+
+function save(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+
+let state = load();
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+function normalizeUrl(raw){
+  let u = raw.trim();
+  if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  return u;
+}
+function hostname(url){
+  try{ return new URL(url).hostname; }catch(e){ return url; }
+}
+function faviconFor(url){
+  return `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(hostname(url))}`;
+}
+function initialOf(title){
+  return (title || '?').trim().charAt(0).toUpperCase();
+}
+
+/* =====================================================================
+   GREETING + CLOCK
+   ===================================================================== */
+function greetingText(){
+  const h = new Date().getHours();
+  if(h < 5)  return 'Burning the midnight oil';
+  if(h < 12) return 'Good morning';
+  if(h < 17) return 'Good afternoon';
+  if(h < 21) return 'Good evening';
+  return 'Good night';
+}
+function renderGreeting(){
+  const name = state.userName?.trim();
+  document.getElementById('greeting').innerHTML =
+    name ? `${greetingText()}, <em>${escapeHtml(name)}</em>` : greetingText();
+}
+function renderClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+setInterval(() => { renderClock(); renderGreeting(); }, 30000);
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+/* =====================================================================
+   SITE NAME (click-to-rename brand label)
+   ===================================================================== */
+const siteNameEl = document.getElementById('siteName');
+function renderSiteName(){ siteNameEl.textContent = state.siteName || 'My Space'; }
+siteNameEl.addEventListener('blur', () => {
+  state.siteName = siteNameEl.textContent.trim() || 'My Space';
+  save(); renderSiteName();
+});
+siteNameEl.addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); siteNameEl.blur(); }
+});
+
+/* =====================================================================
+   SEARCH
+   If the input looks like a URL, navigate to it directly; otherwise
+   send it to Google search.
+   ===================================================================== */
+document.getElementById('searchForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = document.getElementById('searchInput').value.trim();
+  if(!q) return;
+  const looksLikeUrl = /^https?:\/\//i.test(q) || (/^[\w-]+(\.[\w-]+)+/.test(q) && !q.includes(' '));
+  window.location.href = looksLikeUrl ? normalizeUrl(q) : `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+});
+
+/* =====================================================================
+   SHORTCUTS  (row under the search bar)
+   ===================================================================== */
+const shortcutsEl = document.getElementById('shortcuts');
+
+function renderShortcuts(){
+  shortcutsEl.innerHTML = '';
+  state.shortcuts.forEach(sc => {
+    const a = document.createElement('a');
+    a.className = 'shortcut';
+    a.href = sc.url;
+    a.innerHTML = `
+      <span class="remove" data-remove="${sc.id}">×</span>
+      <span class="tile"><img src="${faviconFor(sc.url)}" alt=""
+            onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initialOf(sc.title)}'}))"></span>
+      <span>${escapeHtml(sc.title)}</span>`;
+    shortcutsEl.appendChild(a);
+  });
+
+  const addTile = document.createElement('div');
+  addTile.className = 'shortcut add';
+  addTile.innerHTML = `<span class="tile">+</span><span>Add</span>`;
+  addTile.addEventListener('click', () => openShortcutModal());
+  shortcutsEl.appendChild(addTile);
+
+  // remove buttons (stop the click from also following the link)
+  shortcutsEl.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      state.shortcuts = state.shortcuts.filter(s => s.id !== btn.dataset.remove);
+      save(); renderShortcuts();
+    });
+  });
+}
+
+function openShortcutModal(){
+  openModal({
+    title: 'Add shortcut',
+    fields: [
+      { key: 'title', label: 'Name', placeholder: 'e.g. YouTube' },
+      { key: 'url', label: 'URL', placeholder: 'youtube.com' },
+    ],
+    onSave(values){
+      if(!values.url) return;
+      state.shortcuts.push({
+        id: id(),
+        title: values.title || hostname(normalizeUrl(values.url)),
+        url: normalizeUrl(values.url)
+      });
+      save(); renderShortcuts();
+    }
+  });
+}
+
+/* =====================================================================
+   BOOKMARKS BAR  (folders + links, "just like normal chrome")
+   ===================================================================== */
+const barEl = document.getElementById('bookmarksBar');
+
+function renderBookmarks(){
+  barEl.innerHTML = '';
+  closeAnyDropdown();
+
+  if(state.bookmarks.length === 0){
+    const empty = document.createElement('span');
+    empty.className = 'bm-empty';
+    empty.textContent = 'No bookmarks yet —';
+    barEl.appendChild(empty);
+  }
+
+  state.bookmarks.forEach(bm => barEl.appendChild(renderBarItem(bm)));
+
+  const addBtn = document.createElement('div');
+  addBtn.className = 'bm-add';
+  addBtn.textContent = '+';
+  addBtn.title = 'Add bookmark or folder';
+  addBtn.addEventListener('click', e => { e.stopPropagation(); openAddMenu(addBtn, null); });
+  barEl.appendChild(addBtn);
+}
+
+function renderBarItem(bm){
+  const item = document.createElement('div');
+  item.className = 'bm-item';
+
+  if(bm.type === 'folder'){
+    item.innerHTML = `<span class="folder-dot">▾</span><span>${escapeHtml(bm.title)}</span>
+                       <span class="close" data-del="${bm.id}">×</span>`;
+    item.addEventListener('click', e => {
+      if(e.target.dataset.del) return; // handled below
+      e.stopPropagation();
+      toggleFolder(item, bm);
+    });
+  } else {
+    item.innerHTML = `<img src="${faviconFor(bm.url)}" alt=""
+        onerror="this.outerHTML='<span class=\\'folder-dot\\'>${initialOf(bm.title)}</span>'">
+        <span>${escapeHtml(bm.title)}</span>
+        <span class="close" data-del="${bm.id}">×</span>`;
+    item.addEventListener('click', e => {
+      if(e.target.dataset.del) return;
+      window.location.href = bm.url;
+    });
+  }
+
+  item.querySelector('[data-del]').addEventListener('click', e => {
+    e.stopPropagation();
+    removeBookmark(bm.id);
+  });
+
+  return item;
+}
+
+let openDropdown = null;
+function closeAnyDropdown(){ if(openDropdown){ openDropdown.remove(); openDropdown = null; } }
+document.addEventListener('click', closeAnyDropdown);
+
+function toggleFolder(anchorEl, folder){
+  if(openDropdown){ closeAnyDropdown(); return; }
+  const dd = document.createElement('div');
+  dd.className = 'bm-dropdown';
+  dd.addEventListener('click', e => e.stopPropagation());
+
+  if(folder.children.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'bm-empty';
+    empty.textContent = 'Empty folder';
+    dd.appendChild(empty);
+  }
+  folder.children.forEach(child => {
+    const row = document.createElement('div');
+    row.className = 'bm-item';
+    row.innerHTML = `<img src="${faviconFor(child.url)}" alt=""
+        onerror="this.outerHTML='<span class=\\'folder-dot\\'>${initialOf(child.title)}</span>'">
+        <span>${escapeHtml(child.title)}</span>
+        <span class="close" data-del="${child.id}">×</span>`;
+    row.addEventListener('click', e => {
+      if(e.target.dataset.del) return;
+      window.location.href = child.url;
+    });
+    row.querySelector('[data-del]').addEventListener('click', e => {
+      e.stopPropagation();
+      folder.children = folder.children.filter(c => c.id !== child.id);
+      save(); renderBookmarks();
+    });
+    dd.appendChild(row);
+  });
+
+  const addRow = document.createElement('div');
+  addRow.className = 'bm-dropdown-add';
+  addRow.textContent = '+ Add bookmark here';
+  addRow.addEventListener('click', () => openBookmarkModal(folder.id));
+  dd.appendChild(addRow);
+
+  anchorEl.appendChild(dd);
+  openDropdown = dd;
+}
+
+function removeBookmark(bmId){
+  state.bookmarks = state.bookmarks.filter(b => b.id !== bmId);
+  save(); renderBookmarks();
+}
+
+function openAddMenu(anchorEl, folderId){
+  const dd = document.createElement('div');
+  dd.className = 'bm-dropdown';
+  dd.addEventListener('click', e => e.stopPropagation());
+  dd.innerHTML = `
+    <div class="bm-item" data-action="link">＋ Add bookmark</div>
+    <div class="bm-item" data-action="folder">＋ Add folder</div>`;
+  dd.querySelector('[data-action="link"]').addEventListener('click', () => { closeAnyDropdown(); openBookmarkModal(folderId); });
+  dd.querySelector('[data-action="folder"]').addEventListener('click', () => { closeAnyDropdown(); openFolderModal(); });
+  anchorEl.appendChild(dd);
+  openDropdown = dd;
+}
+
+function openBookmarkModal(folderId){
+  const folders = state.bookmarks.filter(b => b.type === 'folder');
+  openModal({
+    title: 'Add bookmark',
+    fields: [
+      { key: 'title', label: 'Name', placeholder: 'e.g. Anthropic' },
+      { key: 'url', label: 'URL', placeholder: 'anthropic.com' },
+      ...(folders.length ? [{
+        key: 'folder', label: 'Save in', type: 'select',
+        options: [{ value: '', label: 'Bookmarks bar' }, ...folders.map(f => ({ value: f.id, label: f.title }))],
+        value: folderId || ''
+      }] : [])
+    ],
+    onSave(values){
+      if(!values.url) return;
+      const bm = { id: id(), type: 'link', title: values.title || hostname(normalizeUrl(values.url)), url: normalizeUrl(values.url) };
+      const targetId = values.folder || folderId;
+      if(targetId){
+        const folder = state.bookmarks.find(b => b.id === targetId);
+        if(folder) folder.children.push(bm); else state.bookmarks.push(bm);
+      } else {
+        state.bookmarks.push(bm);
+      }
+      save(); renderBookmarks();
+    }
+  });
+}
+
+function openFolderModal(){
+  openModal({
+    title: 'Add folder',
+    fields: [{ key: 'title', label: 'Folder name', placeholder: 'e.g. Work' }],
+    onSave(values){
+      if(!values.title) return;
+      state.bookmarks.push({ id: id(), type: 'folder', title: values.title, children: [] });
+      save(); renderBookmarks();
+    }
+  });
+}
+
+/* =====================================================================
+   GENERIC MODAL
+   One modal element, reused for shortcuts / bookmarks / folders.
+   ===================================================================== */
+const overlay = document.getElementById('overlay');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const modalSave = document.getElementById('modalSave');
+const modalCancel = document.getElementById('modalCancel');
+let currentOnSave = null;
+
+function openModal({ title, fields, onSave }){
+  modalTitle.textContent = title;
+  modalBody.innerHTML = '';
+  fields.forEach(f => {
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+    const label = document.createElement('label');
+    label.textContent = f.label;
+    wrap.appendChild(label);
+
+    if(f.type === 'select'){
+      const select = document.createElement('select');
+      select.dataset.key = f.key;
+      f.options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.value; opt.textContent = o.label;
+        if(o.value === f.value) opt.selected = true;
+        select.appendChild(opt);
+      });
+      wrap.appendChild(select);
+    } else {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = f.placeholder || '';
+      input.dataset.key = f.key;
+      wrap.appendChild(input);
+    }
+    modalBody.appendChild(wrap);
+  });
+
+  currentOnSave = onSave;
+  overlay.classList.add('open');
+  const firstInput = modalBody.querySelector('input');
+  if(firstInput) setTimeout(() => firstInput.focus(), 50);
+}
+
+function closeModal(){ overlay.classList.remove('open'); currentOnSave = null; }
+
+modalCancel.addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if(e.target === overlay) closeModal(); });
+
+modalSave.addEventListener('click', () => {
+  if(!currentOnSave) return;
+  const values = {};
+  modalBody.querySelectorAll('[data-key]').forEach(el => { values[el.dataset.key] = el.value.trim(); });
+  currentOnSave(values);
+  closeModal();
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeModal();
+  if(e.key === 'Enter' && overlay.classList.contains('open') && document.activeElement.tagName !== 'SELECT'){
+    modalSave.click();
+  }
+});
+
+/* =====================================================================
+   FIRST-RUN: ask for a name once, to personalize the greeting
+   ===================================================================== */
+function maybeAskName(){
+  if(state.userName || localStorage.getItem(STORE_KEY + '_asked')) return;
+  localStorage.setItem(STORE_KEY + '_asked', '1');
+  openModal({
+    title: 'What should I call you?',
+    fields: [{ key: 'name', label: 'Name (optional)', placeholder: 'e.g. Alex' }],
+    onSave(values){
+      state.userName = values.name || '';
+      save(); renderGreeting();
+    }
+  });
+}
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+renderSiteName();
+renderGreeting();
+renderClock();
+renderShortcuts();
+renderBookmarks();
+setTimeout(maybeAskName, 600);
+</script>
+</body>
+</html>
