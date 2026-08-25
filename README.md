@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @VandanDaProgrammer
 - 👀 I’m interested in ...
-- 🌱 I’m currently learning HTML CSS PYTHON BOOTSTRAP PHP JAVASCRIPT KALI LINUX
+- 🌱 I’m currently learning HTML CSS PYTHON BOOTSTRAP PHP JAVASCRIPT KALI LINUX PYTHON
 
 
 
